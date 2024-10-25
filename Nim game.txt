@@ -1,0 +1,173 @@
+import random
+import time
+
+def countdown(seconds):
+    """Display a countdown from the given number of seconds."""
+    while seconds > 0:
+        print(f"Starting in {seconds} seconds...", end="\r")
+        time.sleep(1)
+        seconds -= 1
+    print("Let the game begin!\n")
+
+def initialize_piles():
+    """Randomly initialize three piles with counters between 1 and 10."""
+    return random.randint(1, 10), random.randint(1, 10), random.randint(1, 10)
+
+def display_piles(pile_a, pile_b, pile_c):
+    """Display the current state of the piles with decorative formatting."""
+    print("\n" + "=" * 30) 
+    print("          Current Piles          ")
+    print("=" * 30)
+    max_height = max(pile_a, pile_b, pile_c)
+
+    for i in range(max_height, 0, -1):
+        print(f"{' * ' if pile_a >= i else '   '}", end="  ")
+        print(f"{' * ' if pile_b >= i else '   '}", end="  ")
+        print(f"{' * ' if pile_c >= i else '   '}")
+
+    print(" A   B   C ")
+    print(f" {pile_a:^3}  {pile_b:^3}  {pile_c:^3} counters")
+    print("=" * 30)
+
+def explain_rules():
+    """Print the rules of the game in a formatted manner."""
+    print("Welcome to the Nim Game!\n")
+    print("=" * 30)
+    print("Rules:")
+    print("1. The game starts with three piles of counters (A, B, and C).")
+    print("2. Players take turns selecting a pile and removing one or more counters from that pile.")
+    print("3. The player forced to take the **last counter** loses the game.")
+    print("Good luck!\n")
+    print("=" * 30)
+
+def warn_if_about_to_lose(pile_a, pile_b, pile_c):
+    """Warn the player if they are about to lose by having only 1 counter in any pile."""
+    for index, pile in enumerate([pile_a, pile_b, pile_c]):
+        if pile == 1:
+            print(f"⚠️ Warning: Pile {chr(index + 65)} has only 1 counter left! ⚠️")
+            print("Consider your options carefully!")
+
+def get_player_move(pile_a, pile_b, pile_c, player_name):
+    """Get a valid move from the player for selecting a pile and number of counters to remove."""
+    while True:
+        pile_choice = input(f"{player_name}, choose a pile (A, B, C): ").upper()
+        if pile_choice == "A" and pile_a > 0:
+            num_remove = get_counter_input(player_name, pile_a)
+            return pile_choice, num_remove
+        elif pile_choice == "B" and pile_b > 0:
+            num_remove = get_counter_input(player_name, pile_b)
+            return pile_choice, num_remove
+        elif pile_choice == "C" and pile_c > 0:
+            num_remove = get_counter_input(player_name, pile_c)
+            return pile_choice, num_remove
+        else:
+            print("❌ Invalid pile choice or pile is empty. Try again.")
+
+def get_counter_input(player_name, pile):
+    """Get a valid number of counters to remove from the specified pile."""
+    while True:
+        try:
+            num_remove = int(input(f"{player_name}, how many counters to remove (1 to {pile}): "))
+            if 1 <= num_remove <= pile:
+                return num_remove
+            else:
+                print(f"❌ Invalid number. You can remove between 1 and {pile} counters.")
+        except ValueError:
+            print("❌ Invalid input. Please enter a valid integer.")
+
+def update_piles(pile_choice, num_remove, pile_a, pile_b, pile_c):
+    """Update the specified pile after a player makes a move."""
+    if pile_choice == 'A':
+        pile_a -= num_remove
+    elif pile_choice == 'B':
+        pile_b -= num_remove
+    elif pile_choice == 'C':
+        pile_c -= num_remove
+    return pile_a, pile_b, pile_c
+
+def is_game_over(pile_a, pile_b, pile_c):
+    """Check if the game is over (all piles empty)."""
+    return pile_a + pile_b + pile_c == 0
+
+def ai_move(pile_a, pile_b, pile_c):
+    """AI makes a move, trying to win 70% of the time."""
+    piles = [pile_a, pile_b, pile_c]
+    pile_names = ['A', 'B', 'C']
+    nim_sum = pile_a ^ pile_b ^ pile_c
+
+    if random.random() < 0.7:
+        for i, pile in enumerate(piles):
+            target = pile ^ nim_sum
+            if target < pile:
+                num_remove = pile - target
+                print(f"🤖 AI chooses Pile {pile_names[i]} and removes {num_remove} counters.")
+                return pile_names[i], num_remove
+
+    valid_piles = [(pile_a, 'A'), (pile_b, 'B'), (pile_c, 'C')]
+    valid_piles = [(pile, name) for pile, name in valid_piles if pile > 0]
+    pile_size, pile_choice = random.choice(valid_piles)
+    num_remove = random.randint(1, pile_size)
+    print(f"🤖 AI chooses Pile {pile_choice} and removes {num_remove} counters.")
+    return pile_choice, num_remove
+
+def player_vs_player(pile_a, pile_b, pile_c, player1, player2):
+    """Handle the player vs player game mode."""
+    current_player = player1
+    while True:
+        display_piles(pile_a, pile_b, pile_c)
+        warn_if_about_to_lose(pile_a, pile_b, pile_c)
+        pile_choice, num_remove = get_player_move(pile_a, pile_b, pile_c, current_player)
+        pile_a, pile_b, pile_c = update_piles(pile_choice, num_remove, pile_a, pile_b, pile_c)
+
+        if is_game_over(pile_a, pile_b, pile_c):
+            print(f"🎉 {current_player} is forced to take the last counter and loses the game! 🎉")
+            break
+        
+        current_player = player2 if current_player == player1 else player1
+
+def player_vs_ai(pile_a, pile_b, pile_c, player1):
+    """Handle the player vs AI game mode."""
+    ai_player = "AI"
+    current_player = player1
+    while True:
+        display_piles(pile_a, pile_b, pile_c)
+        warn_if_about_to_lose(pile_a, pile_b, pile_c)
+        
+        if current_player == player1:
+            pile_choice, num_remove = get_player_move(pile_a, pile_b, pile_c, player1)
+        else:
+            pile_choice, num_remove = ai_move(pile_a, pile_b, pile_c)
+        
+        pile_a, pile_b, pile_c = update_piles(pile_choice, num_remove, pile_a, pile_b, pile_c)
+
+        if is_game_over(pile_a, pile_b, pile_c):
+            print(f"🎉 {current_player} is forced to take the last counter and loses the game! 🎉")
+            break
+        
+        current_player = ai_player if current_player == player1 else player1
+
+def main():
+    """Main function to run the Nim game."""
+    while True:
+        explain_rules()
+        pile_a, pile_b, pile_c = initialize_piles()
+        player1 = input("Enter Player 1 name: ")
+        choice = input("Choose game mode (1 for Player vs Player, 2 for Player vs AI): ")
+
+        if choice == "1":
+            player2 = input("Enter Player 2 name: ")
+            countdown(5)  # 5-second countdown before starting the game
+            player_vs_player(pile_a, pile_b, pile_c, player1, player2)
+        elif choice == "2":
+            countdown(5)  # 5-second countdown before starting the game
+            player_vs_ai(pile_a, pile_b, pile_c, player1)
+        else:
+            print("❌ Invalid choice. Please restart the game and choose a valid option.")
+        
+        play_again = input("Do you want to play again? (yes or no): ").lower()
+        if play_again != "yes":
+            print("Thank you for playing! Goodbye!")
+            break
+
+if __name__ == "__main__":
+    main()
